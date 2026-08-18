@@ -22,6 +22,8 @@ start. Run ALL of these searches (25/page, paginate if needed):
 4. Known senders (one search each, `sender:` filter):
    - `peter.gao@olamagri.com` — China Rubber Team weekly brief (source: team)
    - `bon@okachi.jp` — Okachi Morning Rubber Report (source: broker)
+   - `m-tamagawa@okachi.jp` — "Japan Rubber Stock Data" (~every 10 days, TOCOM/OSE
+     stocks; also sends Morning Rubber Report some days) (source: broker)
    - `nova_dealing@phillip.com.sg` — SGX Rubber Settlement Prices & News (broker)
    - `rtasing@singnet.com.sg` — RTAS daily quotations, ARBC prices, ANRPC monthly (association)
    - `terencet@dbs.com` — DBS Macro Strategy (broker)
@@ -59,6 +61,18 @@ Read the message resource first to get `attachments[].uri`, then call
 - The DAILY MARKET NEWS paragraph → the entry's `summary` (2–3 sentences) and macro
   themes (oil, hormuz, fx, china-demand, etc.)
 - Metric dates = the report's TRADE DAY (not the email date). Use `d` overrides.
+
+**Japan Rubber Stock Data (m-tamagawa@okachi.jp): always read the PDF attachment.**
+It carries JPX 10-day warehouse stock tables. Extract Grand-Total *Balance
+Stockpile* figures (metric tonnes) with `d` set to each stated date:
+- Section 1 "OSE Designated Warehouse Stockpile" → `ose_stock` (one point per
+  10-day date; the Prev.-Mth column is usually already captured by the prior
+  report — dedupe by date, existing points win)
+- Section 2 grade detail "INT RSS No.3" Total (monthly, "As of" date) → `ose_stock_rss3`
+- Section 3 "RTAJ Private Warehouse Stock" Grand-Total → `rtaj_stock`
+Sentiment: score by the stock trend (draws in deliverable RSS3 = bullish/
+backwardation-supportive; builds = bearish). Note `#N/A` cells — the newest
+decade is often unpublished; skip those.
 
 For every email produce one JSON entry matching the schema documented at the top of
 `dashboard/data.js`:

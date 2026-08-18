@@ -153,6 +153,8 @@
   <div class="grid2">
     <div class="card" id="c-sentiment"></div>
     <div class="card" id="c-tsr20"></div>
+    <div class="card" id="c-stocks"></div>
+    <div class="card" id="c-ose"></div>
     <div class="card" id="c-physical"></div>
     <div class="card" id="c-spread"></div>
     <div class="card" id="c-volume"></div>
@@ -200,6 +202,9 @@
     cup_lump:     { label: "Cup lump",                unit: "THB/kg" },
     latex:        { label: "Field latex",             unit: "THB/kg" },
     tocom_sicom_spread: { label: "TOCOM–SICOM spread", unit: "USD/t" },
+    ose_stock:    { label: "OSE warehouse stock",     unit: "t" },
+    ose_stock_rss3: { label: "OSE deliverable RSS3",  unit: "t" },
+    rtaj_stock:   { label: "RTAJ private stock",      unit: "t" },
     usdthb:       { label: "USD/THB",                 unit: "" },
     usdjpy:       { label: "USD/JPY",                 unit: "" },
     usdcny:       { label: "USD/CNY",                 unit: "" },
@@ -445,7 +450,7 @@
   function kpis(emails) {
     const box = document.getElementById("kpis"); box.innerHTML = "";
     const defs = [
-      { k: "sgx_tsr20", dp: 1 }, { k: "uss_thb", dp: 2 }, { k: "cup_lump", dp: 2 }, { k: "usdthb", dp: 2 }
+      { k: "sgx_tsr20", dp: 1 }, { k: "uss_thb", dp: 2 }, { k: "ose_stock", dp: 0 }, { k: "usdthb", dp: 2 }
     ];
     defs.forEach(def => {
       const s = metricSeries(def.k, D.emails); // KPIs always show latest known, regardless of filters
@@ -542,9 +547,30 @@
     });
 
     lineChart(document.getElementById("c-tsr20"), {
-      title: "SGX / SICOM TSR20", sub: "nearby settle, US¢/kg — as reported in emails",
+      title: "SGX rubber & RSS3 FOB Bangkok", sub: "nearby settles / FOB 3M, US¢/kg — from Okachi reports & emails",
       unit: "US¢/kg",
-      series: [{ label: "SGX TSR20", slot: 1, points: metricSeries("sgx_tsr20", emails) }]
+      series: [
+        { label: "SGX TSR20", slot: 1, points: metricSeries("sgx_tsr20", emails) },
+        { label: "SGX RSS3", slot: 2, points: metricSeries("sgx_rss3", emails) },
+        { label: "RSS3 FOB BKK", slot: 3, points: metricSeries("rss3_fob_bkk", emails) }
+      ]
+    });
+
+    lineChart(document.getElementById("c-stocks"), {
+      title: "TOCOM / OSE rubber stocks (Japan)", sub: "warehouse stock per JPX 10-day data via Okachi, metric tonnes",
+      unit: "t",
+      series: [
+        { label: "OSE designated warehouses", slot: 1, points: metricSeries("ose_stock", emails) },
+        { label: "…of which deliverable RSS3", slot: 2, points: metricSeries("ose_stock_rss3", emails) },
+        { label: "RTAJ private warehouses", slot: 3, points: metricSeries("rtaj_stock", emails) }
+      ],
+      yFmt: v => v.toLocaleString()
+    });
+
+    lineChart(document.getElementById("c-ose"), {
+      title: "OSE (TOCOM) RSS3 futures", sub: "active-month settle, JPY/kg — from Okachi morning reports",
+      unit: "JPY/kg",
+      series: [{ label: "OSE RSS3", slot: 1, points: metricSeries("ose_rss3", emails) }]
     });
 
     lineChart(document.getElementById("c-physical"), {
