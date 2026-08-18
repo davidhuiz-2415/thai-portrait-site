@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rubber Market Intel — Email Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb;
+    --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7;
+    --up: #006300; --down: #d03b3b;
+    --chip: #f0efec;
+  }
+  :root:where(:not([data-theme="light"])) { }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19;
+      --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9;
+      --up: #0ca30c; --down: #e66767;
+      --chip: #262624;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19;
+    --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9;
+    --up: #0ca30c; --down: #e66767;
+    --chip: #262624;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px; line-height: 1.45;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+
+  header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px; margin-bottom: 6px; }
+  header.top h1 { font-size: 20px; font-weight: 650; margin: 0; }
+  header.top .sub { color: var(--ink2); font-size: 13px; }
+  header.top .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .themebtn { background: var(--chip); color: var(--ink2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0 18px;
+    padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .filters .flabel { color: var(--muted); font-size: 12px; margin-right: 2px; }
+  .chipbtn { border: 1px solid var(--border); background: transparent; color: var(--ink2);
+    border-radius: 999px; padding: 3px 11px; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .chipbtn.on { background: var(--chip); color: var(--ink); font-weight: 600; }
+  .chipbtn .swatch { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .filters .sep { width: 1px; height: 20px; background: var(--grid); margin: 0 4px; }
+  .filters input[type="search"] { margin-left: auto; background: var(--page); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 13px; min-width: 180px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .kpi .klabel { color: var(--ink2); font-size: 12px; }
+  .kpi .kvalue { font-size: 26px; font-weight: 650; margin: 2px 0 0; }
+  .kpi .kvalue small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+  .kpi .kdelta { font-size: 12px; margin-top: 2px; color: var(--ink2); }
+  .kpi .kdelta .dup { color: var(--up); font-weight: 600; }
+  .kpi .kdelta .ddown { color: var(--down); font-weight: 600; }
+  .kpi .kdate { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px 10px; margin-bottom: 14px; }
+  .card h2 { font-size: 14px; font-weight: 650; margin: 0 0 2px; }
+  .card .csub { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 2px; font-size: 12px; color: var(--ink2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  svg.chart text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .nodata { color: var(--muted); font-size: 13px; padding: 24px 0 30px; text-align: center; }
+
+  details.tbl { margin: 4px 0 6px; }
+  details.tbl summary { color: var(--muted); font-size: 12px; cursor: pointer; }
+  details.tbl table { border-collapse: collapse; font-size: 12px; margin-top: 6px; width: 100%; }
+  details.tbl th, details.tbl td { border-bottom: 1px solid var(--grid); text-align: right; padding: 3px 8px;
+    font-variant-numeric: tabular-nums; color: var(--ink2); }
+  details.tbl th:first-child, details.tbl td:first-child { text-align: left; }
+  details.tbl th { color: var(--muted); font-weight: 600; }
+
+  .readings table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .readings th, .readings td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid);
+    font-variant-numeric: tabular-nums; }
+  .readings th:first-child, .readings td:first-child { text-align: left; font-variant-numeric: normal; }
+  .readings th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .readings td.dneg { color: var(--down); font-weight: 600; }
+  .readings td.dpos { color: var(--up); font-weight: 600; }
+
+  #tooltip { position: fixed; pointer-events: none; z-index: 50; display: none;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); max-width: 260px; }
+  #tooltip .tt-date { color: var(--muted); margin-bottom: 3px; }
+  #tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
+  #tooltip .tt-row i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+  #tooltip .tt-row b { margin-left: auto; font-variant-numeric: tabular-nums; padding-left: 12px; }
+
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+  .email { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .email .erow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12px; color: var(--muted); }
+  .email .esrc { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink2); }
+  .email .esrc i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .email .esent { font-weight: 600; }
+  .email .esent.pos { color: var(--up); } .email .esent.neg { color: var(--down); } .email .esent.neu { color: var(--muted); }
+  .email h3 { font-size: 14px; margin: 5px 0 4px; font-weight: 650; }
+  .email h3 a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .email p { margin: 0 0 6px; color: var(--ink2); font-size: 13px; }
+  .email .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .email .tags span { background: var(--chip); color: var(--ink2); border-radius: 999px; padding: 1px 9px; font-size: 11px; }
+  .email .msum { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+  footer.note { color: var(--muted); font-size: 12px; margin-top: 26px; border-top: 1px solid var(--grid); padding-top: 12px; }
+  footer.note code { background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Rubber Market Intel</h1>
+    <span class="sub">market-analysis emails, distilled daily · <span id="lastUpdated"></span></span>
+    <div class="right">
+      <span class="sub" id="emailCount"></span>
+      <button class="themebtn" id="themeToggle" title="Toggle light/dark">◐ theme</button>
+    </div>
+  </header>
+
+  <div class="filters" id="filters">
+    <span class="flabel">Range</span>
+    <button class="chipbtn rangebtn" data-range="30">30d</button>
+    <button class="chipbtn rangebtn" data-range="90">90d</button>
+    <button class="chipbtn rangebtn on" data-range="all">All</button>
+    <span class="sep"></span>
+    <span class="flabel">Sources</span>
+    <span id="sourceChips"></span>
+    <input type="search" id="q" placeholder="Search subjects, summaries, themes…">
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2">
+    <div class="card" id="c-sentiment"></div>
+    <div class="card" id="c-tsr20"></div>
+    <div class="card" id="c-physical"></div>
+    <div class="card" id="c-spread"></div>
+    <div class="card" id="c-volume"></div>
+    <div class="card" id="c-themes"></div>
+  </div>
+
+  <div class="card readings" id="c-readings"></div>
+
+  <h2 style="font-size:15px;margin:20px 0 10px;">Email feed</h2>
+  <div class="feed" id="feed"></div>
+
+  <footer class="note">
+    Data is extracted from Outlook by the <code>/update-dashboard</code> Claude command — your weekly updates,
+    team briefs, broker reports (incl. Okachi Morning Rubber Report PDFs), research, association quotations and
+    news digests. Email volume reflects only what has been extracted so far, not total mailbox traffic.
+    Metric points are as reported in the source email on the stated date.
+  </footer>
+</div>
+<div id="tooltip"></div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  "use strict";
+  const D = window.MARKET_DATA || { emails: [], lastUpdated: null };
+
+  /* ---------- config ---------- */
+  const SOURCES = {
+    own:         { label: "My updates",   slot: 1 },
+    team:        { label: "Team",         slot: 2 },
+    broker:      { label: "Brokers",      slot: 3 },
+    association: { label: "Associations", slot: 4 },
+    research:    { label: "Research",     slot: 5 },
+    news:        { label: "News",         slot: 6 }
+  };
+  const METRICS = {
+    sgx_tsr20:    { label: "SGX TSR20 (nearby)",      unit: "US¢/kg" },
+    sgx_rss3:     { label: "SGX RSS3 (nearby)",       unit: "US¢/kg" },
+    rss3_fob_bkk: { label: "RSS3 FOB Bangkok 3M",     unit: "US¢/kg" },
+    ose_rss3:     { label: "OSE RSS3 (active)",       unit: "JPY/kg" },
+    shfe_ru:      { label: "SHFE RU (active)",        unit: "CNY/t"  },
+    ine_tsr20:    { label: "INE TSR20 (active)",      unit: "CNY/t"  },
+    uss_thb:      { label: "USS central market",      unit: "THB/kg" },
+    rss3_thb:     { label: "RSS3 central market",     unit: "THB/kg" },
+    cup_lump:     { label: "Cup lump",                unit: "THB/kg" },
+    latex:        { label: "Field latex",             unit: "THB/kg" },
+    tocom_sicom_spread: { label: "TOCOM–SICOM spread", unit: "USD/t" },
+    usdthb:       { label: "USD/THB",                 unit: "" },
+    usdjpy:       { label: "USD/JPY",                 unit: "" },
+    usdcny:       { label: "USD/CNY",                 unit: "" },
+    wti:          { label: "WTI crude (nearby)",      unit: "USD/bbl" }
+  };
+  const col = s => `var(--s${s})`;
+
+  /* ---------- state ---------- */
+  const state = { range: "all", sources: new Set(Object.keys(SOURCES)), q: "" };
+
+  /* ---------- helpers ---------- */
+  const P = d => new Date(d + "T00:00:00");
+  const fmtD = d => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const fmtDY = d => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmtV = (v, dp) => v.toLocaleString("en-US", { minimumFractionDigits: dp ?? (Math.abs(v) < 100 ? 2 : (Math.abs(v) < 1000 ? 1 : 0)), maximumFractionDigits: dp ?? (Math.abs(v) < 100 ? 2 : (Math.abs(v) < 1000 ? 1 : 0)) });
+
+  function rangeStart() {
+    if (state.range === "all") return null;
+    const days = +state.range;
+    const maxT = Math.max(...D.emails.map(e => +P(e.date)));
+    return new Date(maxT - days * 864e5);
+  }
+  function filteredEmails() {
+    const start = rangeStart(); const q = state.q.toLowerCase();
+    return D.emails.filter(e => {
+      if (!state.sources.has(e.source)) return false;
+      if (start && P(e.date) < start) return false;
+      if (q) {
+        const hay = (e.subject + " " + e.summary + " " + (e.themes || []).join(" ") + " " + e.fromName).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+  function metricSeries(key, emails) {
+    const pts = new Map();
+    emails.forEach(e => (e.metrics || []).forEach(m => {
+      if (m.k === key) pts.set(m.d || e.date, { d: m.d || e.date, v: m.v, src: e.fromName });
+    }));
+    return [...pts.values()].sort((a, b) => a.d < b.d ? -1 : 1);
+  }
+
+  /* ---------- tooltip ---------- */
+  const tt = document.getElementById("tooltip");
+  function showTT(html, x, y) {
+    tt.innerHTML = html; tt.style.display = "block";
+    const r = tt.getBoundingClientRect();
+    tt.style.left = Math.min(x + 14, innerWidth - r.width - 8) + "px";
+    tt.style.top = Math.max(8, Math.min(y + 14, innerHeight - r.height - 8)) + "px";
+  }
+  const hideTT = () => { tt.style.display = "none"; };
+
+  /* ---------- chart primitives ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function niceTicks(min, max, n) {
+    if (min === max) { min -= 1; max += 1; }
+    const span = max - min, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n + 0.5) || 10 * mag;
+    const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+    const t = []; for (let v = lo; v <= hi + 1e-9; v += step) t.push(+v.toFixed(6));
+    return t;
+  }
+
+  function lineChart(container, opts) {
+    // opts: {title, sub, unit, series: [{label, slot, points:[{d,v,note?}]}], zeroLine?, yFmt?}
+    container.innerHTML = `<h2>${esc(opts.title)}</h2><p class="csub">${esc(opts.sub || "")}</p>`;
+    const series = opts.series.filter(s => s.points.length >= 1);
+    const allPts = series.flatMap(s => s.points);
+    if (allPts.length < 2) { container.insertAdjacentHTML("beforeend", `<div class="nodata">Not enough data in range yet — accumulates as the daily update runs.</div>`); return; }
+
+    if (series.length >= 2) {
+      const lg = document.createElement("div"); lg.className = "legend";
+      lg.innerHTML = series.map(s => `<span><i style="background:${col(s.slot)}"></i>${esc(s.label)}</span>`).join("");
+      container.appendChild(lg);
+    }
+
+    const W = 720, H = 280, m = { t: 14, r: 84, b: 26, l: 46 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart" }, container);
+    const xs = allPts.map(p => +P(p.d));
+    let x0 = Math.min(...xs), x1 = Math.max(...xs);
+    if (x0 === x1) { x0 -= 864e5; x1 += 864e5; }
+    const ys = allPts.map(p => p.v);
+    let ticks;
+    if (opts.zeroLine) { ticks = [-2, -1, 0, 1, 2]; }
+    else {
+      const pad = (Math.max(...ys) - Math.min(...ys)) * 0.12 || Math.abs(ys[0]) * 0.05 || 1;
+      ticks = niceTicks(Math.min(...ys) - pad, Math.max(...ys) + pad, 5);
+    }
+    const yMin = ticks[0], yMax = ticks[ticks.length - 1];
+    const X = t => m.l + (t - x0) / (x1 - x0) * (W - m.l - m.r);
+    const Y = v => m.t + (yMax - v) / (yMax - yMin) * (H - m.t - m.b);
+
+    ticks.forEach(v => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: (opts.zeroLine && v === 0) ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, svg)
+        .textContent = opts.yFmt ? opts.yFmt(v) : v.toLocaleString();
+    });
+    // x ticks: ~5 date labels
+    const nX = 5;
+    for (let i = 0; i <= nX; i++) {
+      const t = x0 + (x1 - x0) * i / nX;
+      el("text", { x: X(t), y: H - 8, "text-anchor": "middle", "font-size": 11, fill: "var(--muted)" }, svg)
+        .textContent = fmtD(new Date(t));
+    }
+    el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1 }, svg);
+
+    series.forEach(s => {
+      const pts = s.points.map(p => ({ x: X(+P(p.d)), y: Y(p.v), p }));
+      if (pts.length > 1) {
+        el("path", { d: "M" + pts.map(q => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join("L"),
+          fill: "none", stroke: col(s.slot), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+      }
+      pts.forEach(q => {
+        el("circle", { cx: q.x, cy: q.y, r: 6, fill: "var(--surface)" }, svg);
+        el("circle", { cx: q.x, cy: q.y, r: 4, fill: col(s.slot) }, svg);
+      });
+      const last = pts[pts.length - 1];
+      const lbl = series.length > 1 ? `${s.label.split(" ")[0]} ${fmtV(last.p.v)}` : fmtV(last.p.v);
+      el("text", { x: last.x + 10, y: last.y + 4, "font-size": 11.5, "font-weight": 600, fill: "var(--ink2)" }, svg).textContent = lbl;
+    });
+
+    // hover crosshair
+    const cross = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" }, svg);
+    const dates = [...new Set(allPts.map(p => p.d))].sort();
+    svg.addEventListener("mousemove", ev => {
+      const r = svg.getBoundingClientRect();
+      const vx = (ev.clientX - r.left) / r.width * W;
+      let best = null, bd = 1e18;
+      dates.forEach(d => { const dx = Math.abs(X(+P(d)) - vx); if (dx < bd) { bd = dx; best = d; } });
+      if (!best) return;
+      cross.setAttribute("x1", X(+P(best))); cross.setAttribute("x2", X(+P(best)));
+      cross.setAttribute("visibility", "visible");
+      const rows = series.map(s => {
+        const p = s.points.find(q => q.d === best);
+        return p ? `<div class="tt-row"><i style="background:${col(s.slot)}"></i>${esc(s.label)}<b>${fmtV(p.v)}${opts.unit ? " " + opts.unit : ""}</b></div>` : "";
+      }).join("");
+      const note = allPts.find(p => p.d === best && p.note);
+      showTT(`<div class="tt-date">${fmtDY(P(best))}</div>${rows}${note ? `<div style="margin-top:4px;color:var(--muted)">${esc(note.note)}</div>` : ""}`, ev.clientX, ev.clientY);
+    });
+    svg.addEventListener("mouseleave", () => { cross.setAttribute("visibility", "hidden"); hideTT(); });
+
+    // data table fallback
+    const det = document.createElement("details"); det.className = "tbl";
+    det.innerHTML = `<summary>View data table</summary>` +
+      `<table><tr><th>Date</th>${series.map(s => `<th>${esc(s.label)}${opts.unit ? ` (${opts.unit})` : ""}</th>`).join("")}</tr>` +
+      dates.map(d => `<tr><td>${fmtDY(P(d))}</td>${series.map(s => { const p = s.points.find(q => q.d === d); return `<td>${p ? fmtV(p.v) : "–"}</td>`; }).join("")}</tr>`).join("") + `</table>`;
+    container.appendChild(det);
+  }
+
+  function stackedWeekly(container, emails) {
+    container.innerHTML = `<h2>Email volume by week</h2><p class="csub">extracted market-analysis emails, stacked by source</p>`;
+    const weeks = new Map();
+    emails.forEach(e => {
+      const d = P(e.date); const day = (d.getDay() + 6) % 7;
+      const mon = new Date(+d - day * 864e5); const k = mon.toISOString().slice(0, 10);
+      if (!weeks.has(k)) weeks.set(k, {});
+      weeks.get(k)[e.source] = (weeks.get(k)[e.source] || 0) + 1;
+    });
+    const keys = [...weeks.keys()].sort();
+    if (!keys.length) { container.insertAdjacentHTML("beforeend", `<div class="nodata">No emails in range.</div>`); return; }
+    const srcOrder = Object.keys(SOURCES);
+    const lg = document.createElement("div"); lg.className = "legend";
+    lg.innerHTML = srcOrder.filter(s => emails.some(e => e.source === s))
+      .map(s => `<span><i style="background:${col(SOURCES[s].slot)}"></i>${esc(SOURCES[s].label)}</span>`).join("");
+    container.appendChild(lg);
+
+    const W = 720, H = 260, m = { t: 14, r: 12, b: 26, l: 34 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart" }, container);
+    const maxTot = Math.max(...keys.map(k => srcOrder.reduce((a, s) => a + (weeks.get(k)[s] || 0), 0)));
+    const ticks = niceTicks(0, maxTot, 4).filter(v => v >= 0 && Number.isInteger(v));
+    const yMax = ticks[ticks.length - 1] || 1;
+    const Y = v => m.t + (yMax - v) / yMax * (H - m.t - m.b);
+    ticks.forEach(v => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: m.l - 7, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, svg).textContent = v;
+    });
+    el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1 }, svg);
+
+    const slotW = (W - m.l - m.r) / keys.length;
+    const bw = Math.min(24, slotW * 0.55);
+    keys.forEach((k, i) => {
+      const xC = m.l + slotW * (i + 0.5);
+      let acc = 0; const segs = [];
+      srcOrder.forEach(s => { const c = weeks.get(k)[s] || 0; if (c) { segs.push({ s, c, y0: acc, y1: acc + c }); acc += c; } });
+      segs.forEach((sg, si) => {
+        const top = Y(sg.y1), bot = Y(sg.y0) - (si > 0 ? 2 : 0); // 2px surface gap between segments
+        const h = Math.max(1, bot - top - (si < segs.length - 1 ? 0 : 0));
+        const isTop = si === segs.length - 1;
+        const r = isTop ? 4 : 0;
+        const x = xC - bw / 2;
+        const path = isTop
+          ? `M${x},${bot} L${x},${top + r} Q${x},${top} ${x + r},${top} L${x + bw - r},${top} Q${x + bw},${top} ${x + bw},${top + r} L${x + bw},${bot} Z`
+          : `M${x},${bot} L${x},${top} L${x + bw},${top} L${x + bw},${bot} Z`;
+        const node = el("path", { d: path, fill: col(SOURCES[sg.s].slot) }, svg);
+        node.addEventListener("mousemove", ev => {
+          const tot = segs.reduce((a, q) => a + q.c, 0);
+          showTT(`<div class="tt-date">Week of ${fmtDY(P(k))}</div>` +
+            segs.slice().reverse().map(q => `<div class="tt-row"><i style="background:${col(SOURCES[q.s].slot)}"></i>${esc(SOURCES[q.s].label)}<b>${q.c}</b></div>`).join("") +
+            `<div class="tt-row" style="margin-top:3px">Total<b>${tot}</b></div>`, ev.clientX, ev.clientY);
+        });
+        node.addEventListener("mouseleave", hideTT);
+      });
+      if (i % Math.ceil(keys.length / 7) === 0) {
+        el("text", { x: xC, y: H - 8, "text-anchor": "middle", "font-size": 10.5, fill: "var(--muted)" }, svg).textContent = fmtD(P(k));
+      }
+    });
+
+    const det = document.createElement("details"); det.className = "tbl";
+    det.innerHTML = `<summary>View data table</summary><table><tr><th>Week of</th>${srcOrder.map(s => `<th>${esc(SOURCES[s].label)}</th>`).join("")}</tr>` +
+      keys.map(k => `<tr><td>${fmtDY(P(k))}</td>${srcOrder.map(s => `<td>${weeks.get(k)[s] || 0}</td>`).join("")}</tr>`).join("") + `</table>`;
+    container.appendChild(det);
+  }
+
+  function themeBars(container, emails) {
+    container.innerHTML = `<h2>Recurring themes</h2><p class="csub">how often each theme appears in the extracted emails (current filter)</p>`;
+    const counts = {};
+    emails.forEach(e => (e.themes || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    if (!top.length) { container.insertAdjacentHTML("beforeend", `<div class="nodata">No themes in range.</div>`); return; }
+    const W = 720, rowH = 26, m = { t: 6, r: 40, b: 6, l: 150 };
+    const H = m.t + m.b + top.length * rowH;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart" }, container);
+    const max = top[0][1];
+    top.forEach(([t, c], i) => {
+      const y = m.t + i * rowH, bh = 16;
+      const w = Math.max(3, (W - m.l - m.r) * c / max);
+      el("text", { x: m.l - 10, y: y + bh - 3, "text-anchor": "end", "font-size": 12, fill: "var(--ink2)" }, svg).textContent = t;
+      const node = el("path", { d: `M${m.l},${y} L${m.l + w - 4},${y} Q${m.l + w},${y} ${m.l + w},${y + 4} L${m.l + w},${y + bh - 4} Q${m.l + w},${y + bh} ${m.l + w - 4},${y + bh} L${m.l},${y + bh} Z`, fill: col(1) }, svg);
+      el("text", { x: m.l + w + 8, y: y + bh - 3, "font-size": 12, "font-weight": 600, fill: "var(--ink2)" }, svg).textContent = c;
+      node.addEventListener("mousemove", ev => showTT(`<b>${esc(t)}</b> — mentioned in ${c} email${c > 1 ? "s" : ""}`, ev.clientX, ev.clientY));
+      node.addEventListener("mouseleave", hideTT);
+    });
+  }
+
+  /* ---------- KPI tiles ---------- */
+  function kpis(emails) {
+    const box = document.getElementById("kpis"); box.innerHTML = "";
+    const defs = [
+      { k: "sgx_tsr20", dp: 1 }, { k: "uss_thb", dp: 2 }, { k: "cup_lump", dp: 2 }, { k: "usdthb", dp: 2 }
+    ];
+    defs.forEach(def => {
+      const s = metricSeries(def.k, D.emails); // KPIs always show latest known, regardless of filters
+      if (!s.length) return;
+      const last = s[s.length - 1], prev = s[s.length - 2];
+      const d = prev ? last.v - prev.v : null;
+      const md = METRICS[def.k];
+      const div = document.createElement("div"); div.className = "kpi";
+      div.innerHTML = `<div class="klabel">${esc(md.label)}</div>
+        <div class="kvalue">${fmtV(last.v, def.dp)}<small>${esc(md.unit)}</small></div>
+        ${d !== null ? `<div class="kdelta"><span class="${d >= 0 ? "dup" : "ddown"}">${d >= 0 ? "▲" : "▼"} ${fmtV(Math.abs(d), def.dp)}</span> vs ${fmtD(P(prev.d))}</div>` : ""}
+        <div class="kdate">as of ${fmtDY(P(last.d))}</div>`;
+      box.appendChild(div);
+    });
+    // tone tile: prefer the latest OWN update; fall back to any sentiment-bearing email
+    let sent = D.emails.filter(e => e.source === "own" && e.sentiment !== null && e.sentiment !== undefined)
+      .sort((a, b) => a.date < b.date ? -1 : 1);
+    if (!sent.length) sent = D.emails.filter(e => e.sentiment !== null && e.sentiment !== undefined)
+      .sort((a, b) => a.date < b.date ? -1 : 1);
+    if (sent.length) {
+      const last = sent[sent.length - 1];
+      const lbl = last.sentiment <= -1.5 ? "Very bearish" : last.sentiment <= -0.5 ? "Bearish" :
+                  last.sentiment < 0.5 ? "Neutral" : last.sentiment < 1.5 ? "Bullish" : "Very bullish";
+      const div = document.createElement("div"); div.className = "kpi";
+      div.innerHTML = `<div class="klabel">${last.source === "own" ? "My latest view" : "Current tone"}</div>
+        <div class="kvalue" style="font-size:20px;padding-top:5px;color:${last.sentiment < -0.4 ? "var(--down)" : last.sentiment > 0.4 ? "var(--up)" : "var(--ink)"}">${last.sentiment < -0.4 ? "▼ " : last.sentiment > 0.4 ? "▲ " : "◆ "}${lbl}</div>
+        <div class="kdelta">${esc(last.fromName)}</div>
+        <div class="kdate">as of ${fmtDY(P(last.date))}</div>`;
+      box.appendChild(div);
+    }
+  }
+
+  /* ---------- latest readings table ---------- */
+  function readings() {
+    const box = document.getElementById("c-readings");
+    box.innerHTML = `<h2>Latest readings</h2><p class="csub">most recent value per tracked metric, with change vs the previous reading</p>`;
+    const rows = Object.keys(METRICS).map(k => {
+      const s = metricSeries(k, D.emails);
+      if (!s.length) return null;
+      const last = s[s.length - 1], prev = s[s.length - 2];
+      return { k, last, prev };
+    }).filter(Boolean).sort((a, b) => a.last.d < b.last.d ? 1 : -1);
+    const tbl = document.createElement("table");
+    tbl.innerHTML = `<tr><th>Metric</th><th>Value</th><th>Unit</th><th>Δ prev</th><th>Date</th><th>Reported by</th></tr>` +
+      rows.map(r => {
+        const d = r.prev ? r.last.v - r.prev.v : null;
+        return `<tr><td>${esc(METRICS[r.k].label)}</td><td><b>${fmtV(r.last.v)}</b></td><td style="color:var(--muted)">${esc(METRICS[r.k].unit)}</td>
+          <td class="${d === null ? "" : d >= 0 ? "dpos" : "dneg"}">${d === null ? "–" : (d >= 0 ? "+" : "") + fmtV(d)}</td>
+          <td style="color:var(--muted)">${fmtDY(P(r.last.d))}</td><td style="color:var(--muted)">${esc(r.last.src || "")}</td></tr>`;
+      }).join("");
+    box.appendChild(tbl);
+  }
+
+  /* ---------- feed ---------- */
+  function feed(emails) {
+    const box = document.getElementById("feed");
+    const list = emails.slice().sort((a, b) => a.date < b.date ? 1 : -1);
+    box.innerHTML = list.map(e => {
+      const sc = SOURCES[e.source] || { label: e.source, slot: 7 };
+      const sent = e.sentiment === null || e.sentiment === undefined ? "" :
+        `<span class="esent ${e.sentiment > 0.4 ? "pos" : e.sentiment < -0.4 ? "neg" : "neu"}">${e.sentiment > 0.4 ? "▲ bullish" : e.sentiment < -0.4 ? "▼ bearish" : "◆ neutral"} (${e.sentiment > 0 ? "+" : ""}${e.sentiment})</span>`;
+      const mets = (e.metrics || []).slice(0, 6).map(m =>
+        `${METRICS[m.k] ? METRICS[m.k].label : m.k} ${fmtV(m.v)}${m.u ? " " + m.u : ""}`).join(" · ");
+      return `<article class="email">
+        <div class="erow">
+          <span class="esrc"><i style="background:${col(sc.slot)}"></i>${esc(sc.label)}</span>
+          <span>${fmtDY(P(e.date))}</span><span>${esc(e.fromName)}</span>${sent}
+        </div>
+        <h3>${e.link ? `<a href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.subject)}</a>` : esc(e.subject)}</h3>
+        <p>${esc(e.summary)}</p>
+        <div class="tags">${(e.themes || []).map(t => `<span>${esc(t)}</span>`).join("")}</div>
+        ${mets ? `<div class="msum">${esc(mets)}</div>` : ""}
+      </article>`;
+    }).join("") || `<div class="nodata">No emails match the current filters.</div>`;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    const emails = filteredEmails();
+    document.getElementById("emailCount").textContent = `${emails.length} of ${D.emails.length} emails`;
+
+    kpis(emails);
+
+    // sentiment
+    const sPts = emails.filter(e => e.sentiment !== null && e.sentiment !== undefined)
+      .map(e => ({ d: e.date, v: e.sentiment, note: e.subject }))
+      .sort((a, b) => a.d < b.d ? -1 : 1);
+    const dedup = new Map(); sPts.forEach(p => dedup.set(p.d, p));
+    lineChart(document.getElementById("c-sentiment"), {
+      title: "Sentiment over time", sub: "tone of each analysis email, scored −2 (very bearish) to +2 (very bullish)",
+      unit: "", zeroLine: true,
+      series: [{ label: "Sentiment", slot: 1, points: [...dedup.values()] }],
+      yFmt: v => v > 0 ? "+" + v : String(v)
+    });
+
+    lineChart(document.getElementById("c-tsr20"), {
+      title: "SGX / SICOM TSR20", sub: "nearby settle, US¢/kg — as reported in emails",
+      unit: "US¢/kg",
+      series: [{ label: "SGX TSR20", slot: 1, points: metricSeries("sgx_tsr20", emails) }]
+    });
+
+    lineChart(document.getElementById("c-physical"), {
+      title: "Thai physical prices", sub: "central market / factory buying, THB per kg",
+      unit: "THB/kg",
+      series: [
+        { label: "USS", slot: 1, points: metricSeries("uss_thb", emails) },
+        { label: "RSS3", slot: 2, points: metricSeries("rss3_thb", emails) },
+        { label: "Cup lump", slot: 3, points: metricSeries("cup_lump", emails) },
+        { label: "Latex", slot: 4, points: metricSeries("latex", emails) }
+      ]
+    });
+
+    lineChart(document.getElementById("c-spread"), {
+      title: "TOCOM vs SICOM spread", sub: "as flagged in weekly updates, USD per ton",
+      unit: "USD/t",
+      series: [{ label: "Spread", slot: 2, points: metricSeries("tocom_sicom_spread", emails) }]
+    });
+
+    stackedWeekly(document.getElementById("c-volume"), emails);
+    themeBars(document.getElementById("c-themes"), emails);
+    readings();
+    feed(emails);
+  }
+
+  /* ---------- controls ---------- */
+  document.getElementById("lastUpdated").textContent =
+    D.lastUpdated ? "updated " + new Date(D.lastUpdated).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+
+  const chips = document.getElementById("sourceChips");
+  Object.entries(SOURCES).forEach(([k, v]) => {
+    const b = document.createElement("button");
+    b.className = "chipbtn on"; b.dataset.src = k;
+    b.innerHTML = `<span class="swatch" style="background:${col(v.slot)}"></span>${esc(v.label)}`;
+    b.addEventListener("click", () => {
+      if (state.sources.has(k)) { state.sources.delete(k); b.classList.remove("on"); }
+      else { state.sources.add(k); b.classList.add("on"); }
+      render();
+    });
+    chips.appendChild(b);
+  });
+  document.querySelectorAll(".rangebtn").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".rangebtn").forEach(x => x.classList.remove("on"));
+    b.classList.add("on"); state.range = b.dataset.range; render();
+  }));
+  let qT; document.getElementById("q").addEventListener("input", ev => {
+    clearTimeout(qT); qT = setTimeout(() => { state.q = ev.target.value.trim(); render(); }, 150);
+  });
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const cur = document.documentElement.dataset.theme;
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.dataset.theme = cur === "dark" ? "light" : cur === "light" ? "dark" : (dark ? "light" : "dark");
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
