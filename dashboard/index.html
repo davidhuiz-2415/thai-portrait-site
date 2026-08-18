@@ -175,7 +175,10 @@
 </div>
 <div id="tooltip"></div>
 
-<script src="data.js"></script>
+<script>
+  /* cache-bust the daily-updated dataset so viewers always get today's data */
+  document.write('<scr' + 'ipt src="data.js?v=' + Date.now() + '"></scr' + 'ipt>');
+</script>
 <script>
 (function () {
   "use strict";
